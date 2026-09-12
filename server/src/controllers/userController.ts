@@ -9,9 +9,13 @@ const adapter = new PrismaPg({
     rejectUnauthorized: false,
   },
 });
+
 const prisma = new PrismaClient({ adapter });
 
-export const getUsers = async (req: Request, res: Response): Promise<void> => {
+export const getUsers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const users = await prisma.user.findMany();
     res.json(users);
@@ -22,12 +26,23 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const getUser = async (req: Request, res: Response): Promise<void> => {
-  const { cognitoId } = req.params;
+export const getUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const cognitoIdParam = req.query.cognitoId;
+
+  if (typeof cognitoIdParam !== "string" || cognitoIdParam.length === 0) {
+    res.status(400).json({ message: "Invalid or missing cognitoId" });
+    return;
+  }
+
+  const cognitoId: string = cognitoIdParam;
+
   try {
     const user = await prisma.user.findUnique({
       where: {
-        cognitoId: cognitoId,
+        cognitoId,
       },
     });
 
@@ -39,7 +54,10 @@ export const getUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const postUser = async (req: Request, res: Response) => {
+export const postUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const {
       username,
@@ -47,6 +65,12 @@ export const postUser = async (req: Request, res: Response) => {
       profilePictureUrl = "i1.jpg",
       teamId = 1,
     } = req.body;
+
+    if (typeof cognitoId !== "string" || cognitoId.length === 0) {
+      res.status(400).json({ message: "Invalid or missing cognitoId" });
+      return;
+    }
+
     const newUser = await prisma.user.create({
       data: {
         username,
@@ -55,10 +79,14 @@ export const postUser = async (req: Request, res: Response) => {
         teamId,
       },
     });
-    res.json({ message: "User Created Successfully", newUser });
+
+    res.json({
+      message: "User Created Successfully",
+      newUser,
+    });
   } catch (error: any) {
     res
       .status(500)
-      .json({ message: `Error retrieving users: ${error.message}` });
+      .json({ message: `Error creating user: ${error.message}` });
   }
 };
