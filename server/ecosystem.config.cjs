@@ -3,10 +3,12 @@ module.exports = {
     {
       name: "project-mgt",
       script: "npm",
-      args: "run dev",
+      args: "run start",
+      cwd: "/root/project-mgt/server",
       env: {
-        NODE_ENV: "development",
+        NODE_ENV: "production",
       },
     },
   ],
 };
+
