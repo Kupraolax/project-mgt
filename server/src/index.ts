@@ -5,6 +5,16 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+const prisma = new PrismaClient({ adapter });
 
 /* ROUTE IMPORTS */
 import projectRoutes from "./routes/projectRoutes.js";
@@ -34,6 +44,31 @@ app.use("/tasks", taskRoutes);
 app.use("/search", searchRoutes);
 app.use("/users", userRoutes);
 app.use("/teams", teamRoutes);
+
+app.post("/create-user", async (req: Request, res: Response) => {
+  try {
+    const {
+      username,
+      cognitoId,
+      profilePictureUrl = "i1.jpg",
+      teamId = 1,
+    } = req.body;
+    const newUser = await prisma.user.create({
+      data: {
+        username,
+        cognitoId,
+        profilePictureUrl,
+        teamId,
+      },
+    });
+    res.json({ message: "User Created Successfully", newUser });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving users: ${error.message}` });
+  }
+})
+
 /* SERVER */
 const port = Number(process.env.PORT) || 3000;
 app.listen(port, "0.0.0.0", () => {
