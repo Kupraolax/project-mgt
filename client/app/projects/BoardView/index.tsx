@@ -81,7 +81,7 @@ const TaskColumn = ({
       ref={(instance) => {
         drop(instance);
       }}
-      className={`sl:py-4 rounded-lg py-2 xl:px-2 ${isOver ? "bg-blue-100 dark:bg-neutral-950" : ""}`}
+      className={`sl:py-4 rounded-lg bg-gray-100 py-2 xl:px-2 dark:bg-dark-secondary ${isOver ? "bg-blue-100 dark:bg-neutral-950" : ""}`}
     >
       <div className="mb-3 flex w-full">
         <div
@@ -168,8 +168,8 @@ const Task = ({ task }: TaskProps) => {
       ref={(instance) => {
         drag(instance);
       }}
-      className={`mb-4 rounded-md bg-white shadow dark:bg-dark-secondary ${
-        isDragging ? "opacity-50" : "opacity-100"
+      className={`mb-4 rounded-md border border-gray-200 bg-white shadow dark:border-stroke-dark dark:bg-dark-secondary ${
+      isDragging ? "opacity-50" : "opacity-100"
       }`}
     >
       {task.attachments && task.attachments.length > 0 && (
@@ -211,11 +211,11 @@ const Task = ({ task }: TaskProps) => {
           )}
         </div>
 
-        <div className="text-xs text-gray-500 dark:text-neutral-500">
+        <div className="text-xs text-gray-500 dark:text-neutral-400">
           {formattedStartDate && <span>{formattedStartDate} - </span>}
           {formattedDueDate && <span>{formattedDueDate}</span>}
         </div>
-        <p className="text-sm text-gray-600 dark:text-neutral-500">
+        <p className="text-sm text-gray-600 dark:text-neutral-300">
           {task.description}
         </p>
         <div className="mt-4 border-t border-gray-200 dark:border-stroke-dark" />
