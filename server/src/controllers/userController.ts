@@ -30,7 +30,7 @@ export const getUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const cognitoIdParam = req.query.cognitoId;
+  const cognitoIdParam = req.params.cognitoId;
 
   if (typeof cognitoIdParam !== "string" || cognitoIdParam.length === 0) {
     res.status(400).json({ message: "Invalid or missing cognitoId" });
