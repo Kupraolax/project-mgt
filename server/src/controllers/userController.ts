@@ -67,7 +67,28 @@ export const postUser = async (
     } = req.body;
 
     if (typeof cognitoId !== "string" || cognitoId.length === 0) {
-      res.status(400).json({ message: "Invalid or missing cognitoId" });
+      res.status(400).json({
+        message: "Invalid or missing cognitoId",
+      });
+      return;
+    }
+
+    if (typeof username !== "string" || username.length === 0) {
+      res.status(400).json({
+        message: "Invalid or missing username",
+      });
+      return;
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { cognitoId },
+    });
+
+    if (existingUser) {
+      res.status(200).json({
+        message: "User already exists",
+        newUser: existingUser,
+      });
       return;
     }
 
@@ -80,13 +101,13 @@ export const postUser = async (
       },
     });
 
-    res.json({
+    res.status(201).json({
       message: "User Created Successfully",
       newUser,
     });
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: `Error creating user: ${error.message}` });
+    res.status(500).json({
+      message: `Error creating user: ${error.message}`,
+    });
   }
 };

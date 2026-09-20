@@ -1,6 +1,9 @@
-import React from "react";
+"use client";
+
+import React, { useEffect } from "react";
 import { Authenticator } from "@aws-amplify/ui-react";
 import { Amplify } from "aws-amplify";
+import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
 import "@aws-amplify/ui-react/styles.css";
 
 Amplify.configure({
@@ -22,7 +25,7 @@ const formFields = {
       inputProps: { required: true },
     },
     email: {
-      order: 1,
+      order: 2,
       placeholder: "Enter your email address",
       label: "Email",
       inputProps: { type: "email", required: true },
@@ -42,13 +45,60 @@ const formFields = {
   },
 };
 
+const ProvisionUser = ({ children }: { children: React.ReactNode }) => {
+  useEffect(() => {
+    const provisionUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        const session = await fetchAuthSession();
+
+        const accessToken = session.tokens?.accessToken?.toString();
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/users`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(accessToken
+                ? { Authorization: `Bearer ${accessToken}` }
+                : {}),
+            },
+            body: JSON.stringify({
+              username: user.username,
+              cognitoId: user.userId,
+              profilePictureUrl: "i1.jpg",
+              teamId: 1,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error("Failed to provision RDS user:", error);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("RDS user provisioned:", data);
+      } catch (error) {
+        console.error("Error provisioning RDS user:", error);
+      }
+    };
+
+    provisionUser();
+  }, []);
+
+  return <>{children}</>;
+};
+
 const AuthProvider = ({ children }: any) => {
   return (
     <div>
       <Authenticator formFields={formFields}>
         {({ user }: any) =>
           user ? (
-            <div>{children}</div>
+            <ProvisionUser>{children}</ProvisionUser>
           ) : (
             <div>
               <h1>Please sign in below:</h1>

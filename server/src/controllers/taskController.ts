@@ -99,13 +99,26 @@ export const getUserTasks = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { userId } = req.params;
+  const userIdParam = req.params.userId;
+
+  if (typeof userIdParam !== "string") {
+    res.status(400).json({ message: "Invalid userId" });
+    return;
+  }
+
+  const userId = Number(userIdParam);
+
+  if (!Number.isInteger(userId)) {
+    res.status(400).json({ message: "userId must be a number" });
+    return;
+  }
+
   try {
     const tasks = await prisma.task.findMany({
       where: {
         OR: [
-          { authorUserId: Number(userId) },
-          { assignedUserId: Number(userId) },
+          { authorUserId: userId },
+          { assignedUserId: userId },
         ],
       },
       include: {
@@ -113,10 +126,11 @@ export const getUserTasks = async (
         assignee: true,
       },
     });
+
     res.json(tasks);
   } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: `Error retrieving user's tasks: ${error.message}` });
+    res.status(500).json({
+      message: `Error retrieving user's tasks: ${error.message}`,
+    });
   }
 };
