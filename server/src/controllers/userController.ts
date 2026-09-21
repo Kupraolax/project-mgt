@@ -111,3 +111,64 @@ export const postUser = async (
     });
   }
 };
+
+export const updateUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const cognitoIdParam = req.params.cognitoId;
+
+  if (typeof cognitoIdParam !== "string" || cognitoIdParam.length === 0) {
+    res.status(400).json({
+      message: "Invalid or missing cognitoId",
+    });
+    return;
+  }
+
+  try {
+    const { username, profilePictureUrl } = req.body;
+
+    if (typeof username !== "string" || username.trim().length === 0) {
+      res.status(400).json({
+        message: "Username is required",
+      });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: {
+        cognitoId: cognitoIdParam,
+      },
+      data: {
+        username: username.trim(),
+        profilePictureUrl:
+          typeof profilePictureUrl === "string"
+            ? profilePictureUrl.trim()
+            : undefined,
+      },
+    });
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error: any) {
+    if (error?.code === "P2025") {
+      res.status(404).json({
+        message: "User not found",
+      });
+      return;
+    }
+
+    if (error?.code === "P2002") {
+      res.status(409).json({
+        message: "Username is already in use",
+      });
+      return;
+    }
+
+    res.status(500).json({
+      message: `Error updating user: ${error.message}`,
+    });
+  }
+};

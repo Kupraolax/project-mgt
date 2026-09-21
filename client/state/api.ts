@@ -109,6 +109,27 @@ export const api = createApi({
       },
     }),
 
+    updateUser: build.mutation<
+      User,
+      {
+        cognitoId: string;
+        username: string;
+        profilePictureUrl?: string;
+      }
+    >({
+      query: ({ cognitoId, ...body }) => ({
+        url: `users/${cognitoId}`,
+        method: "PATCH",
+        body,
+      }),
+
+      transformResponse: (response: {
+        message: string;
+        user: User;
+      }) => response.user,
+
+      invalidatesTags: ["Users"],
+    }),
     getProjects: build.query<Project[], void>({
       query: () => "projects",
       providesTags: ["Projects"],
@@ -178,4 +199,5 @@ export const {
   useGetTeamsQuery,
   useGetTasksByUserQuery,
   useGetAuthUserQuery,
+  useUpdateUserMutation,
 } = api;
