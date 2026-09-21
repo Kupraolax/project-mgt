@@ -3,8 +3,9 @@
 import React, { useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
-import StoreProvider, { useAppSelector } from './redux'
+import StoreProvider, { useAppDispatch, useAppSelector } from './redux'
 import AuthProvider from './authProvider'
+import { setIsSidebarCollapsed } from '@/state'
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const isSidebarCollapsed = useAppSelector(
@@ -19,6 +20,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
+
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        dispatch(setIsSidebarCollapsed(true));
+      }
+    };
+
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [dispatch]);
 
   return (
     <div className="flex min-h-screen w-full bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">

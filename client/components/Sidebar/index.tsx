@@ -37,10 +37,13 @@ const Sidebar = () => {
     );
 
 
-    const sidebarClassNames = `fixed flex flex-col h-[100%] justify-between shadow-xl
-    transition-all duration-300 h-full z-40 dark:bg-black overflow-y-auto bg-white
-    ${isSidebarCollapsed ? "w-0 hidden" : "w-64"}
-    w-64"
+    const sidebarClassNames = `fixed z-40 flex h-full w-64 flex-col justify-between
+    overflow-y-auto bg-white shadow-xl transition-all duration-300 dark:bg-black
+    ${
+      isSidebarCollapsed
+        ? "-translate-x-full md:hidden"
+        : "translate-x-0"
+    }
   `;
 
 
