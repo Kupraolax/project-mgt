@@ -1,0 +1,28 @@
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not configured");
+}
+
+const isLocalDatabase =
+  databaseUrl.includes("localhost") ||
+  databaseUrl.includes("127.0.0.1");
+
+const adapter = new PrismaPg({
+  connectionString: databaseUrl,
+  ...(isLocalDatabase
+    ? {}
+    : {
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }),
+});
+
+const prisma = new PrismaClient({ adapter });
+
+export default prisma;

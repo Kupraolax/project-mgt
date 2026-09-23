@@ -1,4 +1,4 @@
-import { useGetTasksQuery, useUpdateTaskStatusMutation } from "@/state/api";
+import { useGetTasksQuery, useUpdateTaskStatusMutation, useGetAuthUserQuery, } from "@/state/api";
 import React from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -6,6 +6,7 @@ import { Task as TaskType } from "@/state/api";
 import { EllipsisVertical, MessageSquareMore, Plus } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
+import ModalTaskDetails from "@/components/ModalTaskDetails";
 
 type BoardProps = {
   id: string;
@@ -15,22 +16,40 @@ type BoardProps = {
 const taskStatus = ["To Do", "Work In Progress", "Under Review", "Completed"];
 
 const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
+  const { data: authUser } = useGetAuthUserQuery({});
   const {
     data: tasks,
     isLoading,
     error,
   } = useGetTasksQuery({ projectId: Number(id) });
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
-
   const moveTask = (taskId: number, toStatus: string) => {
     updateTaskStatus({ taskId, status: toStatus });
+  };
+
+  const [selectedTaskId, setSelectedTaskId] = React.useState<number | null>(
+  null,
+  );
+  const selectedTask = tasks?.find((task) => task.id === selectedTaskId) ?? null;
+
+  const currentUser = authUser?.userDetails;
+
+  const canMoveTask = (task: TaskType) => {
+    if (!currentUser) return false;
+
+    return (
+      currentUser.role === "ADMIN" ||
+      task.authorUserId === currentUser.userId ||
+      task.assignedUserId === currentUser.userId
+    );
   };
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>An error occurred while fetching tasks</div>;
 
-  return (
-    <DndProvider backend={HTML5Backend}>
+return (
+  <DndProvider backend={HTML5Backend}>
+    <>
       <div className="board-view grid grid-cols-1 gap-4 bg-gray-50 p-4 dark:bg-dark-bg md:grid-cols-2 xl:grid-cols-4">
         {taskStatus.map((status) => (
           <TaskColumn
@@ -38,27 +57,42 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
             status={status}
             tasks={tasks || []}
             moveTask={moveTask}
+            canMoveTask={canMoveTask}
             setIsModalNewTaskOpen={setIsModalNewTaskOpen}
+            onOpenTask={setSelectedTaskId}
           />
         ))}
       </div>
-    </DndProvider>
-  );
+
+      {selectedTask && (
+        <ModalTaskDetails
+          task={selectedTask}
+          isOpen={true}
+          onClose={() => setSelectedTaskId(null)}
+        />
+      )}
+    </>
+  </DndProvider>
+);
 };
 
 type TaskColumnProps = {
   status: string;
   tasks: TaskType[];
   moveTask: (taskId: number, toStatus: string) => void;
+  canMoveTask: (task: TaskType) => boolean;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
+  onOpenTask: (taskId: number) => void;
 };
 
 const TaskColumn = ({
   status,
   tasks,
   moveTask,
+  canMoveTask,
   setIsModalNewTaskOpen,
-}: TaskColumnProps) => {
+  onOpenTask,
+  }: TaskColumnProps) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "task",
     drop: (item: { id: number }) => moveTask(item.id, status),
@@ -115,7 +149,7 @@ const TaskColumn = ({
       {tasks
         .filter((task) => task.status === status)
         .map((task) => (
-          <Task key={task.id} task={task} />
+          <Task key={task.id} task={task} canDrag={canMoveTask(task)} onOpenTask={onOpenTask} />
         ))}
     </div>
   );
@@ -123,16 +157,19 @@ const TaskColumn = ({
 
 type TaskProps = {
   task: TaskType;
+  canDrag: boolean;
+  onOpenTask: (taskId: number) => void;
 };
 
-const Task = ({ task }: TaskProps) => {
+const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
     item: { id: task.id },
+    canDrag,
     collect: (monitor: any) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  }));
+  }), [task.id, canDrag]);
 
   const taskTagsSplit = task.tags ? task.tags.split(",") : [];
 
@@ -170,7 +207,7 @@ const Task = ({ task }: TaskProps) => {
       }}
       className={`mb-4 rounded-md border border-gray-200 bg-white shadow dark:border-stroke-dark dark:bg-dark-secondary ${
       isDragging ? "opacity-50" : "opacity-100"
-      }`}
+      } ${canDrag ? "cursor-grab" : "cursor-not-allowed"}`}
     >
       {task.attachments && task.attachments.length > 0 && (
         <Image
@@ -220,12 +257,12 @@ const Task = ({ task }: TaskProps) => {
         </p>
         <div className="mt-4 border-t border-gray-200 dark:border-stroke-dark" />
 
-        {/* Users */}
+                {/* Users */}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex -space-x-[6px] overflow-hidden">
             {task.assignee && (
               <Image
-                key={task.assignee.userId}
+                key={`assignee-${task.assignee.userId}`}
                 src={`https://pm-kupra-s3-images.s3.us-east-1.amazonaws.com/${task.assignee.profilePictureUrl!}`}
                 alt={task.assignee.username}
                 width={30}
@@ -233,9 +270,10 @@ const Task = ({ task }: TaskProps) => {
                 className="h-8 w-8 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
               />
             )}
+
             {task.author && (
               <Image
-                key={task.author.userId}
+                key={`author-${task.author.userId}`}
                 src={`https://pm-kupra-s3-images.s3.us-east-1.amazonaws.com/${task.author.profilePictureUrl!}`}
                 alt={task.author.username}
                 width={30}
@@ -244,11 +282,20 @@ const Task = ({ task }: TaskProps) => {
               />
             )}
           </div>
+
           <div className="flex items-center text-gray-500 dark:text-neutral-500">
-            <MessageSquareMore size={20} />
-            <span className="ml-1 text-sm dark:text-neutral-400">
-              {numberOfComments}
-            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenTask(task.id);
+              }}
+              className="flex items-center gap-1 rounded px-1 py-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+              title="View comments"
+            >
+              <MessageSquareMore size={20} />
+              <span>{numberOfComments}</span>
+            </button>
           </div>
         </div>
       </div>

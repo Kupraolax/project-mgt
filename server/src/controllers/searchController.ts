@@ -1,15 +1,5 @@
-import "dotenv/config";
 import type { Request, Response } from "express";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-const prisma = new PrismaClient({ adapter });
+import prisma from "../lib/prisma.js";
 
 export const search = async (req: Request, res: Response): Promise<void> => {
   const { query } = req.query;

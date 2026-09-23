@@ -31,6 +31,15 @@ export interface User {
   profilePictureUrl?: string;
   cognitoId?: string;
   teamId?: number;
+  role?: "USER" | "ADMIN";
+}
+
+export interface Comment {
+  id: number;
+  text: string;
+  taskId: number;
+  userId: number;
+  user?: User;
 }
 
 export interface Attachment {
@@ -174,6 +183,14 @@ export const api = createApi({
         { type: "Tasks", id: taskId },
       ],
     }),
+    addComment: build.mutation< Comment, { taskId: number; text: string; }>({
+      query: ({ taskId, text }) => ({
+        url: `tasks/${taskId}/comments`,
+        method: "POST",
+        body: { text },
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
     getUsers: build.query<User[], void>({
       query: () => "users",
       providesTags: ["Users"],
@@ -200,4 +217,5 @@ export const {
   useGetTasksByUserQuery,
   useGetAuthUserQuery,
   useUpdateUserMutation,
+  useAddCommentMutation,
 } = api;

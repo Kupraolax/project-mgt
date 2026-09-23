@@ -7,12 +7,19 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   userId            Int              @id @default(autoincrement())
   cognitoId         String           @unique
   username          String           @unique
   profilePictureUrl String?
   teamId            Int?
+  role              UserRole         @default(USER)
+  
   attachments       Attachment[]
   comments          Comment[]
   assignedTasks     Task[]           @relation("TaskAssignee")
