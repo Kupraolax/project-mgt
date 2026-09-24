@@ -1,4 +1,8 @@
-import { useGetTasksQuery, useUpdateTaskStatusMutation, useGetAuthUserQuery, } from "@/state/api";
+import {
+  useGetTasksQuery,
+  useUpdateTaskStatusMutation,
+  useGetAuthUserQuery,
+} from "@/state/api";
 import React from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -28,9 +32,10 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
   };
 
   const [selectedTaskId, setSelectedTaskId] = React.useState<number | null>(
-  null,
+    null,
   );
-  const selectedTask = tasks?.find((task) => task.id === selectedTaskId) ?? null;
+  const selectedTask =
+    tasks?.find((task) => task.id === selectedTaskId) ?? null;
 
   const currentUser = authUser?.userDetails;
 
@@ -47,33 +52,33 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>An error occurred while fetching tasks</div>;
 
-return (
-  <DndProvider backend={HTML5Backend}>
-    <>
-      <div className="board-view grid grid-cols-1 gap-4 bg-gray-50 p-4 dark:bg-dark-bg md:grid-cols-2 xl:grid-cols-4">
-        {taskStatus.map((status) => (
-          <TaskColumn
-            key={status}
-            status={status}
-            tasks={tasks || []}
-            moveTask={moveTask}
-            canMoveTask={canMoveTask}
-            setIsModalNewTaskOpen={setIsModalNewTaskOpen}
-            onOpenTask={setSelectedTaskId}
-          />
-        ))}
-      </div>
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <>
+        <div className="board-view dark:bg-dark-bg grid grid-cols-1 gap-4 bg-gray-50 p-4 md:grid-cols-2 xl:grid-cols-4">
+          {taskStatus.map((status) => (
+            <TaskColumn
+              key={status}
+              status={status}
+              tasks={tasks || []}
+              moveTask={moveTask}
+              canMoveTask={canMoveTask}
+              setIsModalNewTaskOpen={setIsModalNewTaskOpen}
+              onOpenTask={setSelectedTaskId}
+            />
+          ))}
+        </div>
 
-      {selectedTask && (
-        <ModalTaskDetails
-          task={selectedTask}
-          isOpen={true}
-          onClose={() => setSelectedTaskId(null)}
-        />
-      )}
-    </>
-  </DndProvider>
-);
+        {selectedTask && (
+          <ModalTaskDetails
+            task={selectedTask}
+            isOpen={true}
+            onClose={() => setSelectedTaskId(null)}
+          />
+        )}
+      </>
+    </DndProvider>
+  );
 };
 
 type TaskColumnProps = {
@@ -92,7 +97,7 @@ const TaskColumn = ({
   canMoveTask,
   setIsModalNewTaskOpen,
   onOpenTask,
-  }: TaskColumnProps) => {
+}: TaskColumnProps) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "task",
     drop: (item: { id: number }) => moveTask(item.id, status),
@@ -115,18 +120,18 @@ const TaskColumn = ({
       ref={(instance) => {
         drop(instance);
       }}
-      className={`sl:py-4 rounded-lg bg-gray-100 py-2 xl:px-2 dark:bg-dark-secondary ${isOver ? "bg-blue-100 dark:bg-neutral-950" : ""}`}
+      className={`sl:py-4 dark:bg-dark-secondary rounded-lg bg-gray-100 py-2 xl:px-2 ${isOver ? "bg-blue-100 dark:bg-neutral-950" : ""}`}
     >
       <div className="mb-3 flex w-full">
         <div
           className={`w-2 !bg-[${statusColor[status]}] rounded-s-lg`}
           style={{ backgroundColor: statusColor[status] }}
         />
-        <div className="board-column-header flex w-full items-center justify-between rounded-e-lg bg-white px-5 py-4 dark:bg-dark-secondary">
+        <div className="board-column-header dark:bg-dark-secondary flex w-full items-center justify-between rounded-e-lg bg-white px-5 py-4">
           <h3 className="flex items-center text-lg font-semibold dark:text-white">
             {status}{" "}
             <span
-              className="ml-2 inline-block rounded-full bg-gray-200 p-1 text-center text-sm leading-none dark:bg-dark-tertiary"
+              className="dark:bg-dark-tertiary ml-2 inline-block rounded-full bg-gray-200 p-1 text-center text-sm leading-none"
               style={{ width: "1.5rem", height: "1.5rem" }}
             >
               {tasksCount}
@@ -137,7 +142,7 @@ const TaskColumn = ({
               <EllipsisVertical size={26} />
             </button>
             <button
-              className="flex h-6 w-6 items-center justify-center rounded bg-gray-200 dark:bg-dark-tertiary dark:text-white"
+              className="dark:bg-dark-tertiary flex h-6 w-6 items-center justify-center rounded bg-gray-200 dark:text-white"
               onClick={() => setIsModalNewTaskOpen(true)}
             >
               <Plus size={16} />
@@ -149,7 +154,12 @@ const TaskColumn = ({
       {tasks
         .filter((task) => task.status === status)
         .map((task) => (
-          <Task key={task.id} task={task} canDrag={canMoveTask(task)} onOpenTask={onOpenTask} />
+          <Task
+            key={task.id}
+            task={task}
+            canDrag={canMoveTask(task)}
+            onOpenTask={onOpenTask}
+          />
         ))}
     </div>
   );
@@ -161,15 +171,18 @@ type TaskProps = {
   onOpenTask: (taskId: number) => void;
 };
 
-const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: "task",
-    item: { id: task.id },
-    canDrag,
-    collect: (monitor: any) => ({
-      isDragging: !!monitor.isDragging(),
+const Task = ({ task, canDrag, onOpenTask }: TaskProps) => {
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: "task",
+      item: { id: task.id },
+      canDrag,
+      collect: (monitor: any) => ({
+        isDragging: !!monitor.isDragging(),
+      }),
     }),
-  }), [task.id, canDrag]);
+    [task.id, canDrag],
+  );
 
   const taskTagsSplit = task.tags ? task.tags.split(",") : [];
 
@@ -182,6 +195,20 @@ const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
 
   const numberOfComments = (task.comments && task.comments.length) || 0;
 
+  const imageAttachment = task.attachments?.find((attachment) => {
+    const fileName = attachment.fileName?.toLowerCase() || "";
+
+    return [".jpg", ".jpeg", ".png", ".webp"].some((extension) =>
+      fileName.endsWith(extension),
+    );
+  });
+
+  const imageUrl = imageAttachment
+    ? imageAttachment.fileURL.startsWith("http")
+      ? imageAttachment.fileURL
+      : `https://pm-kupra-s3-images.s3.us-east-1.amazonaws.com/${imageAttachment.fileURL}`
+    : null;
+
   const PriorityTag = ({ priority }: { priority: TaskType["priority"] }) => (
     <div
       className={`rounded-full px-2 py-1 text-xs font-semibold ${
@@ -193,7 +220,7 @@ const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
               ? "bg-green-200 text-green-700 dark:bg-green-950 dark:text-green-200"
               : priority === "Low"
                 ? "bg-blue-200 text-blue-700 dark:bg-blue-950 dark:text-blue-200"
-                : "bg-gray-200 text-gray-700 dark:bg-dark-tertiary dark:text-gray-200"
+                : "dark:bg-dark-tertiary bg-gray-200 text-gray-700 dark:text-gray-200"
       }`}
     >
       {priority}
@@ -205,14 +232,14 @@ const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
       ref={(instance) => {
         drag(instance);
       }}
-      className={`mb-4 rounded-md border border-gray-200 bg-white shadow dark:border-stroke-dark dark:bg-dark-secondary ${
-      isDragging ? "opacity-50" : "opacity-100"
+      className={`dark:border-stroke-dark dark:bg-dark-secondary mb-4 rounded-md border border-gray-200 bg-white shadow ${
+        isDragging ? "opacity-50" : "opacity-100"
       } ${canDrag ? "cursor-grab" : "cursor-not-allowed"}`}
     >
-      {task.attachments && task.attachments.length > 0 && (
+      {imageAttachment && imageUrl && (
         <Image
-          src={`https://pm-kupra-s3-images.s3.us-east-1.amazonaws.com/${task.attachments[0].fileURL}`}
-          alt={task.attachments[0].fileName}
+          src={imageUrl}
+          alt={imageAttachment.fileName || "Task attachment"}
           width={400}
           height={200}
           className="h-auto w-full rounded-t-md"
@@ -255,9 +282,9 @@ const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
         <p className="text-sm text-gray-600 dark:text-neutral-300">
           {task.description}
         </p>
-        <div className="mt-4 border-t border-gray-200 dark:border-stroke-dark" />
+        <div className="dark:border-stroke-dark mt-4 border-t border-gray-200" />
 
-                {/* Users */}
+        {/* Users */}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex -space-x-[6px] overflow-hidden">
             {task.assignee && (
@@ -267,7 +294,7 @@ const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
                 alt={task.assignee.username}
                 width={30}
                 height={30}
-                className="h-8 w-8 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
+                className="dark:border-dark-secondary h-8 w-8 rounded-full border-2 border-white object-cover"
               />
             )}
 
@@ -278,7 +305,7 @@ const Task = ({ task, canDrag, onOpenTask, }: TaskProps) => {
                 alt={task.author.username}
                 width={30}
                 height={30}
-                className="h-8 w-8 rounded-full border-2 border-white object-cover dark:border-dark-secondary"
+                className="dark:border-dark-secondary h-8 w-8 rounded-full border-2 border-white object-cover"
               />
             )}
           </div>

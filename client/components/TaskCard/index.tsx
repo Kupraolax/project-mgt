@@ -8,21 +8,33 @@ type Props = {
 };
 
 const TaskCard = ({ task }: Props) => {
+  const imageAttachment = task.attachments?.find((attachment) => {
+    const fileName = attachment.fileName?.toLowerCase() || "";
+
+    return [".jpg", ".jpeg", ".png", ".webp"].some((extension) =>
+      fileName.endsWith(extension),
+    );
+  });
+
+  const imageUrl = imageAttachment
+    ? imageAttachment.fileURL.startsWith("http")
+      ? imageAttachment.fileURL
+      : `https://pm-kupra-s3-images.s3.us-east-1.amazonaws.com/${imageAttachment.fileURL}`
+    : null;
+
   return (
-    <div className="task-card mb-3 rounded bg-white p-4 shadow dark:bg-dark-secondary dark:text-white">
-      {task.attachments && task.attachments.length > 0 && (
+    <div className="task-card dark:bg-dark-secondary mb-3 rounded bg-white p-4 shadow dark:text-white">
+      {imageAttachment && imageUrl && (
         <div>
           <strong>Attachments:</strong>
           <div className="flex flex-wrap">
-            {task.attachments && task.attachments.length > 0 && (
-              <Image
-                src={`https://pm-kupra-s3-images.s3.us-east-1.amazonaws.com/${task.attachments[0].fileURL}`}
-                alt={task.attachments[0].fileName}
-                width={400}
-                height={200}
-                className="rounded-md"
-              />
-            )}
+            <Image
+              src={imageUrl}
+              alt={imageAttachment.fileName || "Task attachment"}
+              width={400}
+              height={200}
+              className="rounded-md"
+            />
           </div>
         </div>
       )}
