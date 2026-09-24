@@ -183,7 +183,10 @@ export const api = createApi({
         { type: "Tasks", id: taskId },
       ],
     }),
-    addComment: build.mutation< Comment, { taskId: number; text: string; }>({
+    addComment: build.mutation<
+      Comment,
+      { taskId: number; text: string }
+    >({
       query: ({ taskId, text }) => ({
         url: `tasks/${taskId}/comments`,
         method: "POST",
@@ -191,6 +194,24 @@ export const api = createApi({
       }),
       invalidatesTags: ["Tasks"],
     }),
+
+    uploadAttachment: build.mutation<
+      Attachment,
+      { taskId: number; file: File }
+    >({
+      query: ({ taskId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return {
+          url: `tasks/${taskId}/attachments`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: ["Tasks"],
+    }),
+
     getUsers: build.query<User[], void>({
       query: () => "users",
       providesTags: ["Users"],
@@ -218,4 +239,5 @@ export const {
   useGetAuthUserQuery,
   useUpdateUserMutation,
   useAddCommentMutation,
+  useUploadAttachmentMutation,
 } = api;

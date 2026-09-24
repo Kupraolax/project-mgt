@@ -5,6 +5,7 @@ import {
   Task,
   useAddCommentMutation,
   useGetAuthUserQuery,
+  useUploadAttachmentMutation,
 } from "@/state/api";
 import { X } from "lucide-react";
 
@@ -18,8 +19,14 @@ const ModalTaskDetails = ({ task, isOpen, onClose }: Props) => {
   const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState("");
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [attachmentError, setAttachmentError] = useState("");
+
   const { data: authUser } = useGetAuthUserQuery({});
   const [addComment, { isLoading }] = useAddCommentMutation();
+
+  const [uploadAttachment, { isLoading: isUploading }] =
+  useUploadAttachmentMutation();
 
   if (!isOpen) return null;
 
@@ -30,6 +37,8 @@ const ModalTaskDetails = ({ task, isOpen, onClose }: Props) => {
   (currentUser.role === "ADMIN" ||
     task.authorUserId === currentUser.userId ||
     task.assignedUserId === currentUser.userId);
+
+  const canUploadAttachment = canComment;
 
   const handleAddComment = async () => {
     const text = commentText.trim();
@@ -51,6 +60,31 @@ const ModalTaskDetails = ({ task, isOpen, onClose }: Props) => {
     } catch (error) {
       console.error("Failed to add comment:", error);
       setCommentError("Unable to add comment.");
+    }
+  };
+
+  const handleUploadAttachment = async () => {
+    if (!selectedFile) {
+      setAttachmentError("Please select a file.");
+      return;
+    }
+
+    try {
+      setAttachmentError("");
+
+      await uploadAttachment({
+        taskId: task.id,
+        file: selectedFile,
+      }).unwrap();
+
+      setSelectedFile(null);
+    } catch (error: any) {
+      console.error("Failed to upload attachment:", error);
+
+      const message =
+        error?.data?.message || "Unable to upload attachment.";
+
+      setAttachmentError(message);
     }
   };
 
@@ -81,6 +115,81 @@ const ModalTaskDetails = ({ task, isOpen, onClose }: Props) => {
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {task.description || "No description provided."}
           </p>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="mb-3 font-semibold">
+            Attachments ({task.attachments?.length || 0})
+          </h3>
+
+          {task.attachments && task.attachments.length > 0 ? (
+            <div className="space-y-2">
+              {task.attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="flex items-center justify-between rounded-md bg-gray-100 p-3 dark:bg-gray-700"
+                >
+                  <span className="min-w-0 truncate text-sm">
+                    {attachment.fileName || `Attachment ${attachment.id}`}
+                  </span>
+
+                  <a
+                    href={attachment.fileURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-4 text-sm font-medium text-blue-600 hover:underline"
+                  >
+                    Open
+                  </a>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No attachments yet.
+            </p>
+          )}
+
+          {canUploadAttachment ? (
+            <div className="mt-4 rounded-md border p-3 dark:border-gray-700">
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.doc,.docx,.xls,.xlsx"
+                onChange={(e) => {
+                  setSelectedFile(e.target.files?.[0] || null);
+                  setAttachmentError("");
+                }}
+                className="block w-full text-sm"
+              />
+
+              {selectedFile && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Selected: {selectedFile.name}
+                </p>
+              )}
+
+              {attachmentError && (
+                <p className="mt-2 text-sm text-red-500">
+                  {attachmentError}
+                </p>
+              )}
+
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleUploadAttachment}
+                  disabled={!selectedFile || isUploading}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isUploading ? "Uploading..." : "Upload Attachment"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-gray-500">
+              Only the task author, assignee, or an administrator can upload attachments.
+            </p>
+          )}
         </div>
 
         <div className="mb-6">

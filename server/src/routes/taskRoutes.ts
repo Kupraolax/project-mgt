@@ -5,11 +5,47 @@ import {
   updateTaskStatus,
   getUserTasks,
   createComment,
+  createAttachment,
 } from "../controllers/taskController.js";
 
 import { authenticateUser } from "../middleware/authMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
+
+import type { NextFunction, Request, Response } from "express";
+import multer from "multer";
 
 const router = Router();
+
+const handleAttachmentUpload = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  upload.single("file")(req, res, (error: any) => {
+    if (!error) {
+      next();
+      return;
+    }
+
+    if (error instanceof multer.MulterError) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        res.status(400).json({
+          message: "File is too large. Maximum size is 10 MB.",
+        });
+        return;
+      }
+
+      res.status(400).json({
+        message: `File upload error: ${error.message}`,
+      });
+      return;
+    }
+
+    res.status(400).json({
+      message: error.message || "Invalid file upload",
+    });
+  });
+};
 
 router.get("/", getTasks);
 router.post("/", createTask);
@@ -18,5 +54,6 @@ router.patch( "/:taskId/status", authenticateUser, updateTaskStatus);
 
 router.get("/user/:userId", getUserTasks);
 router.post("/:taskId/comments", authenticateUser, createComment);
+router.post("/:taskId/attachments", authenticateUser, handleAttachmentUpload, createAttachment);
 
 export default router;
