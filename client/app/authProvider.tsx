@@ -54,6 +54,18 @@ const ProvisionUser = ({ children }: { children: React.ReactNode }) => {
 
         const accessToken = session.tokens?.accessToken?.toString();
 
+	if (!accessToken) {
+	  console.error("No Cognito access token available");
+	  return;
+	}
+
+	let appSessionId = sessionStorage.getItem("appSessionId");
+
+	if (!appSessionId) {
+	  appSessionId = crypto.randomUUID();
+	  sessionStorage.setItem("appSessionId", appSessionId);
+	}
+
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/users`,
           {
@@ -81,6 +93,25 @@ const ProvisionUser = ({ children }: { children: React.ReactNode }) => {
 
         const data = await response.json();
         console.log("RDS user provisioned:", data);
+	const sessionResponse = await fetch(
+	  `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/session`,
+	  {
+	    method: "POST",
+	    headers: {
+	      "Content-Type": "application/json",
+	      Authorization: `Bearer ${accessToken}`,
+	      "x-session-id": appSessionId,
+	    },
+	  }
+	);
+
+	if (!sessionResponse.ok) {
+	  const error = await sessionResponse.text();
+	  console.error("Failed to register application session:", error);
+	  return;
+	}
+
+	console.log("Application session registered");
       } catch (error) {
         console.error("Error provisioning RDS user:", error);
       }

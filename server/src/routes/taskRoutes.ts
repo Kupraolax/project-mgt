@@ -8,7 +8,10 @@ import {
   createAttachment,
 } from "../controllers/taskController.js";
 
-import { authenticateUser } from "../middleware/authMiddleware.js";
+import {
+  authenticateUser,
+  enforceActiveSession,
+} from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 
 import type { NextFunction, Request, Response } from "express";
@@ -50,10 +53,27 @@ const handleAttachmentUpload = (
 router.get("/", getTasks);
 router.post("/", createTask);
 
-router.patch( "/:taskId/status", authenticateUser, updateTaskStatus);
+router.patch(
+  "/:taskId/status",
+  authenticateUser,
+  enforceActiveSession,
+  updateTaskStatus
+);
 
 router.get("/user/:userId", getUserTasks);
-router.post("/:taskId/comments", authenticateUser, createComment);
-router.post("/:taskId/attachments", authenticateUser, handleAttachmentUpload, createAttachment);
+router.post(
+  "/:taskId/comments",
+  authenticateUser,
+  enforceActiveSession,
+  createComment
+);
+
+router.post(
+  "/:taskId/attachments",
+  authenticateUser,
+  enforceActiveSession,
+  handleAttachmentUpload,
+  createAttachment
+);
 
 export default router;

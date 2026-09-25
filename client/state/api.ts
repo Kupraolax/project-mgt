@@ -1,5 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
+import {
+  fetchAuthSession,
+  getCurrentUser,
+  signOut,
+} from "aws-amplify/auth";
+import type { BaseQueryFn } from "@reduxjs/toolkit/query";
 
 export interface Project {
   id: number;
@@ -83,19 +88,54 @@ export interface Team {
   projectManagerUserId?: number;
 }
 
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+  prepareHeaders: async (headers) => {
+    const session = await fetchAuthSession();
+    const { accessToken } = session.tokens ?? {};
+
+    if (accessToken) {
+      headers.set("Authorization", `Bearer ${accessToken}`);
+    }
+
+    const appSessionId = sessionStorage.getItem("appSessionId");
+
+    if (appSessionId) {
+      headers.set("x-session-id", appSessionId);
+    }
+
+    return headers;
+  },
+});
+
+const baseQueryWithSessionHandling: BaseQueryFn = async (
+  args,
+  api,
+  extraOptions
+) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+
+  if (
+    result.error?.status === 401 &&
+    typeof result.error.data === "object" &&
+    result.error.data !== null &&
+    "code" in result.error.data &&
+    result.error.data.code === "SESSION_REPLACED"
+  ) {
+    sessionStorage.removeItem("appSessionId");
+
+    await signOut();
+
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  }
+
+  return result;
+};
 
 export const api = createApi({
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL, 
-    prepareHeaders: async (headers) => {
-      const session = await fetchAuthSession();
-      const { accessToken } = session.tokens ?? {};
-      if (accessToken) {
-        headers.set("Authorization", `Bearer ${accessToken}`);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithSessionHandling,
   reducerPath: "api",
   tagTypes: ["Projects", "Tasks", "Users", "Teams"],
   endpoints: (build) => ({

@@ -13,19 +13,20 @@ enum UserRole {
 }
 
 model User {
-  userId            Int              @id @default(autoincrement())
-  cognitoId         String           @unique
-  username          String           @unique
+  userId            Int      @id @default(autoincrement())
+  cognitoId         String   @unique
+  username          String   @unique
   profilePictureUrl String?
   teamId            Int?
-  role              UserRole         @default(USER)
-  
-  attachments       Attachment[]
-  comments          Comment[]
-  assignedTasks     Task[]           @relation("TaskAssignee")
-  authoredTasks     Task[]           @relation("TaskAuthor")
-  taskAssignments   TaskAssignment[]
-  team              Team?            @relation(fields: [teamId], references: [id])
+  role              UserRole @default(USER)
+  activeSessionId   String?
+
+  attachments     Attachment[]
+  comments        Comment[]
+  assignedTasks   Task[]           @relation("TaskAssignee")
+  authoredTasks   Task[]           @relation("TaskAuthor")
+  taskAssignments TaskAssignment[]
+  team            Team?            @relation(fields: [teamId], references: [id])
 }
 
 model Team {
