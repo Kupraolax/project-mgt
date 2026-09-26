@@ -185,6 +185,78 @@ export const registerSession = async (
       return;
     }
 
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        cognitoId,
+      },
+      select: {
+        userId: true,
+        activeSessionId: true,
+      },
+    });
+
+    if (!existingUser) {
+      res.status(404).json({
+        message: "User not found",
+      });
+      return;
+    }
+
+    if (
+      existingUser.activeSessionId &&
+      existingUser.activeSessionId !== sessionId
+    ) {
+      res.status(409).json({
+        code: "SESSION_CONFLICT",
+        message: "This account is already signed in from another session.",
+      });
+      return;
+    }
+
+    if (!existingUser.activeSessionId) {
+      await prisma.user.update({
+        where: {
+          cognitoId,
+        },
+        data: {
+          activeSessionId: sessionId,
+        },
+      });
+    }
+
+    res.status(200).json({
+      message: "Session registered successfully",
+      userId: existingUser.userId,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: `Error registering session: ${error.message}`,
+    });
+  }
+};
+
+export const replaceSession = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const cognitoId = req.authUser?.cognitoId;
+    const sessionId = req.appSessionId;
+
+    if (!cognitoId) {
+      res.status(401).json({
+        message: "Authenticated user is required",
+      });
+      return;
+    }
+
+    if (!sessionId) {
+      res.status(400).json({
+        message: "Session ID is required",
+      });
+      return;
+    }
+
     const user = await prisma.user.update({
       where: {
         cognitoId,
@@ -195,7 +267,7 @@ export const registerSession = async (
     });
 
     res.status(200).json({
-      message: "Session registered successfully",
+      message: "Previous session replaced successfully",
       userId: user.userId,
     });
   } catch (error: any) {
@@ -207,7 +279,7 @@ export const registerSession = async (
     }
 
     res.status(500).json({
-      message: `Error registering session: ${error.message}`,
+      message: `Error replacing session: ${error.message}`,
     });
   }
 };

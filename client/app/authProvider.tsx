@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Authenticator } from "@aws-amplify/ui-react";
 import { Amplify } from "aws-amplify";
 import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
@@ -46,8 +46,14 @@ const formFields = {
 };
 
 const ProvisionUser = ({ children }: { children: React.ReactNode }) => {
+  const provisioningRef = useRef(false);
   useEffect(() => {
     const provisionUser = async () => {
+          if (provisioningRef.current) {
+      return;
+    }
+
+    provisioningRef.current = true;
       try {
         const user = await getCurrentUser();
         const session = await fetchAuthSession();
@@ -105,13 +111,58 @@ const ProvisionUser = ({ children }: { children: React.ReactNode }) => {
 	  }
 	);
 
-	if (!sessionResponse.ok) {
-	  const error = await sessionResponse.text();
-	  console.error("Failed to register application session:", error);
-	  return;
-	}
+	if (sessionResponse.status === 409) {
+  const conflict = await sessionResponse.json();
 
-	console.log("Application session registered");
+  if (conflict.code === "SESSION_CONFLICT") {
+    const shouldReplace = window.confirm(
+      "This account is already signed in on another browser or device.\n\n" +
+        "Continuing will sign out the other session.\n\n" +
+        "Do you want to continue?"
+    );
+
+    if (!shouldReplace) {
+      console.log("Session replacement cancelled");
+
+      sessionStorage.removeItem("appSessionId");
+
+      const { signOut } = await import("aws-amplify/auth");
+      await signOut();
+
+      window.location.href = "/";
+      return;
+    }
+
+    const replaceResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/session/replace`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "x-session-id": appSessionId,
+        },
+      }
+    );
+
+    if (!replaceResponse.ok) {
+      const error = await replaceResponse.text();
+      console.error("Failed to replace application session:", error);
+      return;
+    }
+
+    console.log("Previous application session replaced");
+    return;
+  }
+}
+
+if (!sessionResponse.ok) {
+  const error = await sessionResponse.text();
+  console.error("Failed to register application session:", error);
+  return;
+}
+
+console.log("Application session registered");
       } catch (error) {
         console.error("Error provisioning RDS user:", error);
       }
