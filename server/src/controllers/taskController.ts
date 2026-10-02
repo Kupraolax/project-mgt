@@ -164,14 +164,18 @@ export const getUserTasks = async (
   const userIdParam = req.params.userId;
 
   if (typeof userIdParam !== "string") {
-    res.status(400).json({ message: "Invalid userId" });
+    res.status(400).json({
+      message: "Invalid userId",
+    });
     return;
   }
 
   const userId = Number(userIdParam);
 
   if (!Number.isInteger(userId)) {
-    res.status(400).json({ message: "userId must be a number" });
+    res.status(400).json({
+      message: "userId must be a number",
+    });
     return;
   }
 
@@ -179,13 +183,44 @@ export const getUserTasks = async (
     const tasks = await prisma.task.findMany({
       where: {
         OR: [
-          { authorUserId: userId },
-          { assignedUserId: userId },
+          // Primary assignee
+          {
+            assignedUserId: userId,
+          },
+
+          // Additional/multiple assignees
+          {
+            taskAssignments: {
+              some: {
+                userId,
+              },
+            },
+          },
         ],
       },
+
       include: {
         author: true,
         assignee: true,
+
+        taskAssignments: {
+          include: {
+            user: true,
+          },
+        },
+
+        comments: {
+          include: {
+            user: true,
+          },
+        },
+
+        attachments: true,
+        project: true,
+      },
+
+      orderBy: {
+        dueDate: "asc",
       },
     });
 

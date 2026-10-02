@@ -1,13 +1,24 @@
 import { useAppSelector } from "@/app/redux";
 import Header from "@/components/Header";
-import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
-import { useGetTasksQuery } from "@/state/api";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import {
+  dataGridClassNames,
+  dataGridSxStyles,
+} from "@/lib/utils";
+import {
+  useGetTasksQuery,
+  useGetTasksByUserQuery,
+} from "@/state/api";
+import {
+  DataGrid,
+  GridColDef,
+} from "@mui/x-data-grid";
 import React from "react";
 
 type Props = {
-  id: string;
+  id?: string;
+  userId?: number;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
+  showAddTaskButton?: boolean;
 };
 
 const columns: GridColDef[] = [
@@ -55,26 +66,74 @@ const columns: GridColDef[] = [
     field: "author",
     headerName: "Author",
     width: 150,
-    renderCell: (params) => params.value?.author || "Unknown",
+    renderCell: (params) =>
+      params.row.author?.username || "Unknown",
   },
   {
     field: "assignee",
     headerName: "Assignee",
     width: 150,
-    renderCell: (params) => params.value?.assignee || "Unassigned",
+    renderCell: (params) =>
+      params.row.assignee?.username || "Unassigned",
   },
 ];
 
-const TableView = ({ id, setIsModalNewTaskOpen }: Props) => {
-  const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
-  const {
-    data: tasks,
-    error,
-    isLoading,
-  } = useGetTasksQuery({ projectId: Number(id) });
+const TableView = ({
+  id,
+  userId,
+  setIsModalNewTaskOpen,
+  showAddTaskButton = true,
+}: Props) => {
+  const isDarkMode = useAppSelector(
+    (state) => state.global.isDarkMode
+  );
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error || !tasks) return <div>An error occurred while fetching tasks</div>;
+  // Fetch project tasks
+  const {
+    data: projectTasks,
+    error: projectTasksError,
+    isLoading: isProjectTasksLoading,
+  } = useGetTasksQuery(
+    { projectId: Number(id) },
+    {
+      skip: userId !== undefined || !id,
+    }
+  );
+
+  // Fetch user tasks
+  const {
+    data: userTasks,
+    error: userTasksError,
+    isLoading: isUserTasksLoading,
+  } = useGetTasksByUserQuery(userId ?? 0, {
+    skip: userId === undefined,
+  });
+
+  // Select the appropriate task source
+  const tasks =
+    userId !== undefined ? userTasks : projectTasks;
+
+  const isLoading =
+    userId !== undefined
+      ? isUserTasksLoading
+      : isProjectTasksLoading;
+
+  const error =
+    userId !== undefined
+      ? userTasksError
+      : projectTasksError;
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error || !tasks) {
+    return (
+      <div>
+        An error occurred while fetching tasks
+      </div>
+    );
+  }
 
   return (
     <div className="h-[540px] w-full px-4 pb-8 xl:px-6">
@@ -82,18 +141,21 @@ const TableView = ({ id, setIsModalNewTaskOpen }: Props) => {
         <Header
           name="Table"
           buttonComponent={
-            <button
-              className="flex items-center rounded bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
-              onClick={() => setIsModalNewTaskOpen(true)}
-            >
-              Add Task
-            </button>
+            showAddTaskButton ? (
+              <button
+                className="flex items-center rounded bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
+                onClick={() => setIsModalNewTaskOpen(true)}
+              >
+                Add Task
+              </button>
+            ) : undefined
           }
           isSmallText
         />
       </div>
+
       <DataGrid
-        rows={tasks || []}
+        rows={tasks}
         columns={columns}
         className={dataGridClassNames}
         sx={dataGridSxStyles(isDarkMode)}

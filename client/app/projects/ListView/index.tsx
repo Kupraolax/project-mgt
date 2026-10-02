@@ -1,19 +1,61 @@
 import Header from "@/components/Header";
 import TaskCard from "@/components/TaskCard";
-import { Task, useGetTasksQuery } from "@/state/api";
+import {
+  Task,
+  useGetTasksQuery,
+  useGetTasksByUserQuery,
+} from "@/state/api";
+
 import React from "react";
 
 type Props = {
-  id: string;
+  id?: string;
+  userId?: number;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
+  showAddTaskButton?: boolean;
 };
 
-const ListView = ({ id, setIsModalNewTaskOpen }: Props) => {
+const ListView = ({
+  id,
+  userId,
+  setIsModalNewTaskOpen,
+  showAddTaskButton = true,
+}: Props) => {
+  // Fetch project tasks when ListView is being used
+  // from a project page.
   const {
-    data: tasks,
-    error,
-    isLoading,
-  } = useGetTasksQuery({ projectId: Number(id) });
+    data: projectTasks,
+    error: projectTasksError,
+    isLoading: isProjectTasksLoading,
+  } = useGetTasksQuery(
+    { projectId: Number(id) },
+    {
+      skip: userId !== undefined || !id,
+    },
+  );
+
+  // Fetch user tasks when ListView is being used
+  // from a user page.
+  const {
+    data: userTasks,
+    error: userTasksError,
+    isLoading: isUserTasksLoading,
+  } = useGetTasksByUserQuery(userId ?? 0, {
+    skip: userId === undefined,
+  });
+
+  const tasks =
+    userId !== undefined ? userTasks : projectTasks;
+
+  const isLoading =
+    userId !== undefined
+      ? isUserTasksLoading
+      : isProjectTasksLoading;
+
+  const error =
+    userId !== undefined
+      ? userTasksError
+      : projectTasksError;
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>An error occurred while fetching tasks</div>;
@@ -24,12 +66,14 @@ const ListView = ({ id, setIsModalNewTaskOpen }: Props) => {
         <Header
           name="List"
           buttonComponent={
-            <button
-              className="flex items-center rounded bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
-              onClick={() => setIsModalNewTaskOpen(true)}
-            >
-              Add Task
-            </button>
+            showAddTaskButton ? (
+              <button
+                className="flex items-center rounded bg-blue-primary px-3 py-2 text-white hover:bg-blue-600"
+                onClick={() => setIsModalNewTaskOpen(true)}
+              >
+                Add Task
+              </button>
+            ) : undefined
           }
           isSmallText
         />

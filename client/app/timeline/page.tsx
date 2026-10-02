@@ -9,6 +9,93 @@ import React, { useMemo, useState } from "react";
 
 type TaskTypeItems = "task" | "milestone" | "project";
 
+const TaskListHeader = ({
+  headerHeight,
+}: {
+  headerHeight: number;
+  rowWidth: string;
+  fontFamily: string;
+  fontSize: string;
+}) => {
+  return (
+    <div
+      className="flex border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-dark-secondary"
+      style={{ height: headerHeight }}
+    >
+      <div className="flex w-[120px] items-center border-r px-3">
+        Name
+      </div>
+
+      <div className="flex w-[120px] items-center border-r px-3">
+        From
+      </div>
+
+      <div className="flex w-[120px] items-center border-r px-3">
+        To
+      </div>
+
+      <div className="flex w-[90px] items-center justify-center px-3">
+        Progress
+      </div>
+    </div>
+  );
+};
+
+const TaskListTable = ({
+  tasks,
+  rowHeight,
+  selectedTaskId,
+  setSelectedTask,
+}: {
+  rowHeight: number;
+  rowWidth: string;
+  fontFamily: string;
+  fontSize: string;
+  locale: string;
+  tasks: any[];
+  selectedTaskId: string;
+  setSelectedTask: (taskId: string) => void;
+}) => {
+  return (
+    <div>
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          className={`flex border-b border-gray-200 dark:border-gray-700 ${
+            selectedTaskId === task.id
+              ? "bg-gray-100 dark:bg-gray-700"
+              : "bg-white dark:bg-dark-secondary"
+          }`}
+          style={{ height: rowHeight }}
+          onClick={() => setSelectedTask(task.id)}
+        >
+          <div className="flex w-[120px] items-center overflow-hidden border-r px-3">
+            <span className="truncate">
+              {task.name}
+            </span>
+          </div>
+
+          <div className="flex w-[120px] items-center overflow-hidden border-r px-3">
+            <span className="truncate">
+              {task.start.toLocaleDateString()}
+            </span>
+          </div>
+
+          <div className="flex w-[120px] items-center overflow-hidden border-r px-3">
+            <span className="truncate">
+              {task.end.toLocaleDateString()}
+            </span>
+          </div>
+
+          <div className="flex w-[90px] items-center justify-center font-semibold">
+            {task.progress}%
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const Timeline = () => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const { data: projects, isLoading, isError } = useGetProjectsQuery();
@@ -26,7 +113,7 @@ const Timeline = () => {
         name: project.name,
         id: `Project-${project.id}`,
         type: "project" as TaskTypeItems,
-        progress: 50,
+        progress: project.progress ?? 0,
         isDisabled: false,
       })) || []
     );
@@ -67,11 +154,24 @@ const Timeline = () => {
           <Gantt
             tasks={ganttTasks}
             {...displayOptions}
-            columnWidth={displayOptions.viewMode === ViewMode.Month ? 150 : 100}
-            listCellWidth="100px"
-            projectBackgroundColor={isDarkMode ? "#101214" : "#1f2937"}
-            projectProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}
-            projectProgressSelectedColor={isDarkMode ? "#000" : "#9ba1a6"}
+            columnWidth={
+              displayOptions.viewMode === ViewMode.Month ? 150 : 100
+            }
+
+            listCellWidth="450px"
+
+            TaskListHeader={TaskListHeader}
+            TaskListTable={TaskListTable}
+
+            projectBackgroundColor={
+              isDarkMode ? "#101214" : "#1f2937"
+            }
+            projectProgressColor={
+              isDarkMode ? "#1f2937" : "#aeb8c2"
+            }
+            projectProgressSelectedColor={
+              isDarkMode ? "#000" : "#9ba1a6"
+            }
           />
         </div>
       </div>

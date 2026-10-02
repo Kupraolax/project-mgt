@@ -12,6 +12,10 @@ export interface Project {
   description?: string;
   startDate?: string;
   endDate?: string;
+
+  progress?: number;
+  totalTasks?: number;
+  completedTasks?: number;
 }
 
 export enum Priority {
@@ -221,6 +225,7 @@ export const api = createApi({
       }),
       invalidatesTags: (result, error, { taskId }) => [
         { type: "Tasks", id: taskId },
+        "Projects",
       ],
     }),
     addComment: build.mutation<

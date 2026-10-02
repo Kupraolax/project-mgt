@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import { Download, Filter } from "lucide-react";
 import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const CustomToolbar = () => (
   <Toolbar className="flex gap-2 border-b border-gray-200 px-2 dark:border-stroke-dark">
@@ -70,6 +71,8 @@ const Users = () => {
   const { data: users, isLoading, isError } = useGetUsersQuery();
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
+  const router = useRouter();
+
   if (isLoading) return <div>Loading...</div>;
   if (isError || !users) return <div>Error fetching users</div>;
 
@@ -87,7 +90,9 @@ const Users = () => {
             toolbar: CustomToolbar,
           }}
           className={dataGridClassNames}
-          sx={dataGridSxStyles(isDarkMode)}
+          sx={{ ...dataGridSxStyles(isDarkMode), "& .MuiDataGrid-row": {cursor: "pointer",}, }}
+          onRowClick={(params) => { router.push(`/users/${params.row.userId}/tasks`);
+          }}
         />
       </div>
     </div>

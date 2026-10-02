@@ -1,5 +1,6 @@
 import {
   useGetTasksQuery,
+  useGetTasksByUserQuery,
   useUpdateTaskStatusMutation,
   useGetAuthUserQuery,
 } from "@/state/api";
@@ -13,22 +14,65 @@ import Image from "next/image";
 import ModalTaskDetails from "@/components/ModalTaskDetails";
 
 type BoardProps = {
-  id: string;
+  id?: string;
+  userId?: number;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
+  showAddTaskButton?: boolean;
 };
 
 const taskStatus = ["To Do", "Work In Progress", "Under Review", "Completed"];
 
-const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
+const BoardView = ({
+  id,
+  userId,
+  setIsModalNewTaskOpen,
+  showAddTaskButton = true,
+}: BoardProps) => {
   const { data: authUser } = useGetAuthUserQuery({});
+
+  // Project tasks
   const {
-    data: tasks,
-    isLoading,
-    error,
-  } = useGetTasksQuery({ projectId: Number(id) });
-  const [updateTaskStatus] = useUpdateTaskStatusMutation();
+    data: projectTasks,
+    isLoading: isProjectTasksLoading,
+    error: projectTasksError,
+  } = useGetTasksQuery(
+    { projectId: Number(id) },
+    {
+      skip: userId !== undefined || !id,
+    },
+  );
+
+  // User tasks
+  const {
+    data: userTasks,
+    isLoading: isUserTasksLoading,
+    error: userTasksError,
+  } = useGetTasksByUserQuery(userId ?? 0, {
+    skip: userId === undefined,
+  });
+
+  // Decide which set of tasks BoardView should display
+  const tasks =
+    userId !== undefined ? userTasks : projectTasks;
+
+  const isLoading =
+    userId !== undefined
+      ? isUserTasksLoading
+      : isProjectTasksLoading;
+
+  const error =
+    userId !== undefined
+      ? userTasksError
+      : projectTasksError;
+
+  const [updateTaskStatus] =
+    useUpdateTaskStatusMutation();
+
   const moveTask = (taskId: number, toStatus: string) => {
-    updateTaskStatus({ taskId, status: toStatus });
+    updateTaskStatus({
+      taskId,
+      status: toStatus,
+    });
   };
 
   const [selectedTaskId, setSelectedTaskId] = React.useState<number | null>(
@@ -88,6 +132,7 @@ type TaskColumnProps = {
   canMoveTask: (task: TaskType) => boolean;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
   onOpenTask: (taskId: number) => void;
+  showAddTaskButton?: boolean;
 };
 
 const TaskColumn = ({
